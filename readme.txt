@@ -1,0 +1,1 @@
+global.prop是keil5的配置文件，放到D:\keil5\UV4这个路径底下
