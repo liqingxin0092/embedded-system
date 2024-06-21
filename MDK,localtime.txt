@@ -1,0 +1,17 @@
+#include <time.h>
+time_t Time;
+struct tm * TimeStruct;
+   Time=1484204101;
+TimeStruct=localtime(&Time);
+
+
+时间映射(实际相对于MKD)：
+秒，不变
+分，不变
+时，-16 
+日，+1
+月，+1
+年，+1900
+周，+1
+
+由于时与日会产生进位，遂弃用
