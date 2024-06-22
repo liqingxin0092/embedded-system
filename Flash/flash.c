@@ -1,3 +1,6 @@
+
+#include "flash.h"
+
 //读取flash
 uint16_t  FlashRead(uint32_t add)
 {

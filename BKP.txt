@@ -1,0 +1,9 @@
+   //这两句初始化BKP
+   RCC->APB1ENR|=3<<27;//使能PWR和BKP时钟
+   PWR->CR|=1<<8;//使能对BKP和RTC的访问
+   
+   //写BKP       （f103系列DR1~DR10）
+   BKP->DR1=0xff01;
+
+   //读2BKP
+   Time=BKP->DR1;
