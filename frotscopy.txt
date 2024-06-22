@@ -1,0 +1,464 @@
+
+portMAX_DELAY
+//二值信号量置1
+xSemaphoreGive(myBinarySem01Handle); 
+
+
+
+
+//绝对等待时间（需要在cubeMax中开启）
+        TickType_t xLastWakeTime;  //定义私有变量
+	xLastWakeTime=xTaskGetTickCount();//循环上面
+        vTaskDelayUntil(&xLastWakeTime,1000);//循环里面
+
+
+
+
+//一个空按键
+			 if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)  //for的里面
+			{
+					osDelay(20);
+					if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+					{
+
+					}
+						while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			 }
+
+
+
+//按键删除，创建任务
+if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+					if( LEDHandle==NULL)
+					{
+						USART_Printf( &huart1,"任务1不存在\r\n");
+						
+					  osThreadDef(LED, LED1, osPriorityLow, 0, 128);
+						LEDHandle = osThreadCreate(osThread(LED),(void *)"task1\r\n");
+						
+						USART_Printf( &huart1,"任务创建完成\r\n");
+					}
+					else
+					{
+						vTaskDelete(LEDHandle);
+						LEDHandle=NULL;
+						
+						USART_Printf( &huart1,"删除任务1");
+						
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+
+//按键暂停，继续任务
+if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
+				{
+						osDelay(20);
+					
+						if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
+						{
+								if(flag==1)
+								{
+									vTaskSuspend( LEDAHandle );
+									flag=0;
+									USART_Printf( &huart1,"任务2暂停\r\n");
+								}
+								else
+								{
+										vTaskResume( LEDAHandle );
+									flag=1;
+									USART_Printf( &huart1,"任务2继续\r\n");
+								}
+						}
+							while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0);
+				}
+
+
+
+//写队列
+ /* USER CODE BEGIN FS1_ */
+	BaseType_t xStatus;
+	uint32_t Buf=10086;
+  /* Infinite loop */
+  for(;;)
+  {
+if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+					xStatus=xQueueSendToBack(myQueue01Handle,&Buf,0);//或者portMAX_DELAY
+					if(xStatus!=pdPASS )
+					{
+							USART_Printf( &huart1,"队列写入失败/r/n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"队列写入%d/r/n",Buf);
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+  }
+
+
+//读队列
+ /* USER CODE BEGIN JS_ */
+			BaseType_t xStatus;
+	uint32_t Buf;
+  /* Infinite loop */
+
+for(;;)
+  {
+      if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+					USART_Printf( &huart1,"当前接收到%d\r\n",Buf);
+					xStatus=xQueueReceive(xQueue,&Buf,portMAX_DELAY);//或者0
+					if(xStatus!=pdPASS )
+					{
+							USART_Printf( &huart1,"队列读取失败/r/n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"队列读取到%d/r/n",Buf);
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0);
+			}
+  }
+
+
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>     //串口打印，可能有问题，某些汉字，小数
+char String[30];
+void USART_Printf( UART_HandleTypeDef * chuankou,char *format, ...)
+{
+	va_list arg;							//定义可变参数列表数据类型的变量arg
+	va_start(arg, format);					//从format开始，接收参数列表到arg变量
+	vsprintf(String, format, arg);			//使用vsprintf打印格式化字符串和参数列表到字符数组中
+	va_end(arg);						     	//结束变量arg
+	HAL_UART_Transmit(chuankou, (uint8_t*)String, strlen(String), 200);
+}
+
+
+//手动创建队列
+/* USER CODE BEGIN Variables */
+QueueHandle_t xQueue;  //加这个
+/* USER CODE END Variables */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+	xQueue=xQueueCreate(1,sizeof(uint32_t));   //加这个
+  /* USER CODE END RTOS_QUEUES */
+
+
+
+//覆盖写入队列
+  /* USER CODE BEGIN FS1_ */
+	BaseType_t xStatus;
+	uint32_t Buf=10086;
+  /* Infinite loop */
+
+
+	if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)  //for的里面
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+					xStatus=xQueueOverwrite( xQueue,&Buf);
+					if(xStatus!=pdPASS )
+					{
+							USART_Printf( &huart1,"队列写入失败/r/n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"队列写入%d/r/n",Buf);
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+
+//偷窥       （不拿走队列里的数）(好几个任务都要读这个数)
+  /* USER CODE BEGIN JS_ */
+			BaseType_t xStatus;
+	uint32_t Buf;
+  /* Infinite loop */
+
+
+		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+					USART_Printf( &huart1,"当前接收到%d\r\n",Buf);
+					xStatus=xQueuePeek(xQueue,&Buf,portMAX_DELAY);
+					if(xStatus!=pdPASS )
+					{
+							USART_Printf( &huart1,"队列偷窥失败/r/n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"队列偷窥到%d/r/n",Buf);
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0);
+			}
+
+
+
+//二值信号量创建
+  /* Create the semaphores(s) */
+  /* definition and creation of myBinarySem01 */
+	
+//  osSemaphoreDef(myBinarySem01);            //max配置初始化信号量
+//  myBinarySem01Handle = osSemaphoreCreate(osSemaphore(myBinarySem01), 1);
+	
+   myBinarySem01Handle=xSemaphoreCreateBinary();//我们手动初始化信号量
+                                                                            //如果用MAX初始化，会初始化满
+
+
+
+
+//信号量释放       （释放与接收必须交替进行）
+if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+					if( xSemaphoreGive(myBinarySem01Handle)==pdTRUE)
+					{
+						USART_Printf( &huart1,"读取成功，释放信号量\r\n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"读取成功，释放失败\r\n");
+						
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+//信号量接收
+if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+					if( xSemaphoreTake(myBinarySem01Handle,0)==pdTRUE)
+					{
+		
+						USART_Printf( &huart1,"刷新成功，接收成功\r\n");
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13 );
+					}
+					else
+					{
+						USART_Printf( &huart1,"刷新成功，接收失败\r\n");
+						
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0);
+			}
+
+
+//计数信号量创建
+  /* definition and creation of myCountingSem01 */
+
+//  osSemaphoreDef(myCountingSem01);             //max配置初始化信号量
+//  myCountingSem01Handle = osSemaphoreCreate(osSemaphore(myCountingSem01), 16);
+
+myCountingSem01Handle =xSemaphoreCreateCounting(16,0);         //我们手动初始化信号量
+                                                  //最大值是16，初始值是0 //如果用MAX初始化，会初始化满(16)
+
+//计数信号量的增值
+if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+					if( xSemaphoreGive(myCountingSem01Handle)==pdTRUE)
+					{
+						USART_Printf( &huart1,"停车成功\r\n");
+					}
+					else
+					{
+						USART_Printf( &huart1,"车库满了\r\n");
+						
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+
+
+//事件组创建与使用
+前面全局变量加个这个
+EventGroupHandle_t MyEvent=NULL;
+void MX_FREERTOS_Init(void)这个函数里面加个
+MyEvent=xEventGroupCreate();
+写条件
+xEventGroupSetBits(MyEvent,0x0001);
+xEventGroupSetBits(MyEvent,0x0010);
+xEventGroupSetBits(MyEvent,0x0100);
+
+用条件判断
+Event=xEventGroupWaitBits(MyEvent,0x0111,pdTRUE,pdFALSE,portMAX_DELAY);
+第一个pd是是否清除标志位
+第二个pd是 采用或还是与
+		if(Event==0x0111)
+		{
+				USART_Printf( &huart1,"执行\r\n");
+		}
+
+		if(Event==0x0100||Event==0x0010||Event==0x0001)
+		{
+				USART_Printf( &huart1,"执行\r\n");
+		}
+
+
+//任务通知     //模拟二值和计数
+		if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)      
+		    {
+					if( num<20)
+					{
+						
+						xTaskNotifyGive(key2fHandle);             //给某个任务值增加         ，自身任务值上限不确定
+						num++;
+						USART_Printf( &huart1,"当前有：%d\n",num);
+					}
+					else
+					{
+						USART_Printf( &huart1,"车库满了\n");
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+					if( ulTaskNotifyTake( pdFALSE,0)>0)                          //如果是pdFALSE，给自身任务值减去1，pdTRUE给自身任务值清空， 0是一点不等待
+					{
+						num--;
+						USART_Printf( &huart1,"当前有：%d\n",num);
+					}
+					else
+					{
+						USART_Printf( &huart1,"车库空了\r\n");
+					}
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0);
+		}
+
+
+//模拟事件组
+		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+						xTaskNotify(key3fHandle,0x0010,eSetBits);         // 给任务值写数
+					USART_Printf( &huart1,"按键2被按下\r\n");
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0);
+		}
+
+		if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+
+						xTaskNotify(key3fHandle,0x0001,eSetBits);       // 给任务值写数
+					USART_Printf( &huart1,"按键1被按下\r\n");
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+
+
+    		if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0)
+		    {
+					xTaskNotifyWait(0x00000000,0xffffffff,&num,0);        // 接收自身任务值的数   进入前不清除任务值，所以8个0，退出时清除任务值所以8个f，最终任务值写到num里（必须uint32_t）,不等待
+					if(num==0x0011)                                                     //与的关系
+					{
+							USART_Printf( &huart1,"触发\r\n");
+					}
+				else
+				{
+					USART_Printf( &huart1,"没触发\r\n");
+				}
+				
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6)==0);
+		}
+
+//模拟队列
+    if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4)==0)
+		    {
+						if(xTaskNotifyWait(0x00000000,0xffffffff,&num,0)==pdTRUE)            //接收任务值，队列
+						{
+							USART_Printf( &huart1,"接收到了 %s\r\n",(char*) num);
+						}
+				
+				}
+					while(HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4 )==0);
+		}
+
+
+
+
+		if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		{
+			  osDelay(20);
+				if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0)
+		    {
+
+						if(xTaskNotify(key2fHandle,(uint32_t)"564",eSetValueWithoutOverwrite)==pdTRUE)             //不覆盖发送任务值
+						{
+							
+							USART_Printf( &huart1,"发送了消息\r\n");
+						}
+						else{
+							
+					USART_Printf( &huart1,"队列满了\r\n");
+						}
+				}
+					while(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)==0);
+			}
+
+
+
+
+
+
+
+
+//修改定时器周期
+xTimerChangePeriod(myTimer02Handle,1000,200);

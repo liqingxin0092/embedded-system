@@ -1,0 +1,132 @@
+//串口发送
+#include <stdarg.h>     
+#include <string.h>
+#include <stdio.h>
+char String[30];	
+void USART_Printf( UART_HandleTypeDef * chuankou,char *format, ...)
+{					
+	va_list arg;						
+	va_start(arg, format);					
+	vsprintf(String, format, arg);		
+	va_end(arg);					     
+	HAL_UART_Transmit(chuankou, (uint8_t*)String, strlen(String), 200);
+}
+
+
+USART_Printf( &huart1,"t0.txt=\"成功了\"\xff\xff\xff"); //直接发就行，这是个指令，屏幕会接收
+
+click b0,1 //按案件
+click b0,0//松按键
+
+
+//单片机接收
+
+uint8_t receivedata[5];
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+	if(huart==&huart1)
+		{
+
+		if(receivedata[0]==0x55&&receivedata[2]==0xff&&receivedata[3]==0xff&&receivedata[4]==0xff)
+		{
+			if(receivedata[1]==0x01)
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET );
+			else if(receivedata[1]==0x00)
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET );
+		}
+			  HAL_UARTEx_ReceiveToIdle_DMA(&huart1, receivedata, 50);
+			  __HAL_DMA_DISABLE_IT(&hdma_usart1_rx,DMA_IT_HT);//关闭中断
+			  
+			  // for(int i=0;i<10;i++)    Ҫ  strcmp ı ָ             Ƿ  ͻ   Ӱ  
+			 //receivedata[i]=0;
+		}
+}
+
+详细部分见hal_copy.txt文件
+
+
+
+//串口屏接收
+
+program内的变化：
+int usize2=0
+recmod=1//串口协议模式:0-字符串指令协议;1-主动解析协议
+
+串口屏定时器部分代码：
+usize2=usize
+while(usize2>=5)           //一帧的数量
+{
+  if(u[0]!=0x55||u[2]!=0xff||u[3]!=0xff||u[4]!=0xff)
+  {
+    usize2--
+    udelete 1
+  }
+  else
+  {
+    usize2=0
+  }
+}
+
+if(usize>=5)
+{
+  if(u[0]==0x55&&u[2]==0xff&&u[3]==0xff&&u[4]==0xff)
+  {
+  
+    if(u[1]==1)
+    {
+      n0.val=1
+    }
+    else if(u[1]==0)
+    {
+      n0.val=0
+    }
+    
+    udelete 5
+  }
+  else
+  {
+    udelete 1
+  }
+}
+
+
+//键盘默认中文
+click b241,1 //触发按下事件
+click b241,0//触发弹起事件
+input.txt="" //默认清空
+show.txt=""//默认清空
+
+
+
+
+
+ sys0=p[loadpageid.val].b[loadcmpid.val].val    //必须用全局变量赋值一下
+
+//数字键盘里的ok按钮，弹起事件触发       发送输入的值，注意必须是数字（nx）类型的
+if(loadpageid.val==0)//0指的是页面id
+{
+  //判断调用键盘的控件id
+  if(loadcmpid.val==page0.n0.id)       //n0是是按键名字
+  {
+    printh 00
+    prints sys0,1   //发全局变量，必须这么干
+    printh 05
+  }
+}
+
+
+
+
+
+
+//每页数据同步！！
+随便一页定义一个定时器和变量vax，变量设置为全局，每页要同步的东西也设置为全局
+其他页只有定时器
+每一页的定时器都加这个
+page2.t2.txt=page1.va0.txt
+page1.t2.txt=page1.va0.txt
+page3.t2.txt=page1.va0.txt
+
+单片机发修改全局变量vax
+比如
+USART_Printf( &huart6,"page1.va0.txt=\"完成充能\"\xff\xff\xff");

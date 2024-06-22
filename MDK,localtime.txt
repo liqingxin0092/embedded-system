@@ -1,6 +1,7 @@
 #include <time.h>
 time_t Time;
 struct tm * TimeStruct;
+单片机是离线的裸机，不能获取时间戳
    Time=1484204101;
 TimeStruct=localtime(&Time);
 

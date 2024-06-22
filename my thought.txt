@@ -1,0 +1,455 @@
+ //                   这个是真正的函数库
+TIM_SetCompare1(TIM2,num);//这个函数设置通道1CCR比较值 
+TIM_SetCompare2(TIM2,num);//这个函数设置通道2CCR比较值 
+TIM_SetCompare3(TIM2,num);//这个函数设置通道3CCR比较值 
+TIM_SetCompare4(TIM2,num);//这个函数设置通道4CCR比较值 
+
+TIM_GetCapture1(TIM_TypeDef* TIMx);//输入捕获获取ccr1的值
+TIM_GetCapture2(TIM_TypeDef* TIMx);
+TIM_GetCapture3(TIM_TypeDef* TIMx);
+TIM_GetCapture4(TIM_TypeDef* TIMx);
+TIM_PWMIConfig(TIM3,&TIM_ICInitStructure);//相当于上面注释的代码，快速配置：启用另一个通道，将其配置成和上面通道相反的配置
+TIM_EncoderInterfaceConfig(TIM3,TIM_EncoderMode_TI12,TIM_ICPolarity_Falling,TIM_ICPolarity_Falling);//编码器接口时钟
+
+TIM_SetCounter(TIM3,0);//这个函数设置计数值
+TIM_GetCounter(TIMx); //这个函数看计数值
+
+TIM_ClearFlag(TIM2,TIM_FLAG_Update);//清除中断标志位
+TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);//使能TIM中断
+GPIO_EXTILineConfig(GPIO_PortSourceGPIOB,GPIO_PinSource0|GPIO_PinSource1);//选择什么为外部中断引脚
+
+GPIO_PinRemapConfig//这个函数是重映射或者改变端口功能
+GPIO_ResetBits(GPIOA,GPIO_Pin_0);//写低
+GPIO_SetBits(GPIOA,GPIO_Pin_1);//写高
+
+TIM_ETRClockMode1Config(TIM2,IS_TIM_EXT_PRESCALER(TIM_ExtTRGPSC_DIV8),TIM_ExtTRGPolarity_Inverted,0x00);//TIM外部始终模式1(定时器级联)
+TIM_ETRClockMode2Config(TIM2, TIM_ExtTRGPSC_OFF,TIM_ExtTRGPolarity_NonInverted,0x00);//TIM外部时钟模式2 
+
+TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);//给时基单元配初始值
+TIM_OCStructInit(TIM_OCInitTypeDef* TIM_OCInitStruct);//给比较单元配初始值
+TIM_ICStructInit(TIM_ICInitTypeDef* TIM_ICInitStruct);//给捕获单元配初始值
+
+TIM_SelectMasterSlaveMode(TIM3,TIM_MasterSlaveMode_Enable);//选择谁为主模式
+TIM_SelectOutputTrigger(TIM3,TIM_TRGOSource_Update);//谁输出触发源
+TIM_SelectInputTrigger(TIM2,TIM_TS_ITR2);//谁接收触发源
+TIM_SelectSlaveMode(TIM2,TIM_SlaveMode_External1);//从模式是什么
+
+ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);//填写adc转换菜单的函数
+
+USART_ReceiveData(USART1);
+//GPIO的模板
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+GPIO_InitTypeDef GPIO_Initstructure;
+GPIO_Initstructure.GPIO_Mode= GPIO_Mode_Out_PP;
+GPIO_Initstructure.GPIO_Pin=GPIO_Pin_0;
+GPIO_Initstructure.GPIO_Speed=GPIO_Speed_50MHz;
+GPIO_Init(GPIOA, &GPIO_Initstructure);
+//GPIO输出高低切换模板
+if(GPIO_ReadOutputDataBit(GPIOA,GPIO_Pin_0)==0)
+	{
+		GPIO_SetBits(GPIOA,GPIO_Pin_0);
+	}
+	else
+	{
+		GPIO_ResetBits(GPIOA,GPIO_Pin_0);
+	}
+//时基单元的模板
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3,ENABLE);
+TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+TIM_TimeBaseStructure.TIM_Period=10000-1;
+TIM_TimeBaseStructure.TIM_Prescaler=7200-1;
+TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
+TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
+TIM_TimeBaseInit(TIM3,&TIM_TimeBaseStructure);
+TIM_Cmd(TIM3,ENABLE);//一般放最后
+//输入捕获的模板
+TIM_ICInitTypeDef TIM_ICInitStructure;
+TIM_ICStructInit(&TIM_ICInitStructure);
+TIM_ICInitStructure.TIM_Channel=TIM_Channel_1;
+TIM_ICInitStructure.TIM_ICFilter=0xf;
+TIM_ICInitStructure.TIM_ICPolarity=TIM_ICPolarity_Rising;//翻不翻转
+TIM_ICInitStructure.TIM_ICPrescaler=TIM_ICPSC_DIV1;
+TIM_ICInitStructure.TIM_ICSelection=TIM_ICSelection_DirectTI;//交不交叉
+TIM_ICInit(TIM3,&TIM_ICInitStructure);
+//频率，占空比模板              每次捕获一个上升沿，ccr=cnt，用捕获定时器标准频率除以ccr（次数）得到待测频率，占空比ccr2/ccr1
+TIM_ICInitTypeDef TIM_ICInitStructure;
+TIM_ICInitStructure.TIM_Channel=TIM_Channel_1;
+TIM_ICInitStructure.TIM_ICFilter=0xf;
+TIM_ICInitStructure.TIM_ICPolarity=TIM_ICPolarity_Rising;
+TIM_ICInitStructure.TIM_ICPrescaler=TIM_ICPSC_DIV1;
+TIM_ICInitStructure.TIM_ICSelection=TIM_ICSelection_DirectTI;
+TIM_ICInit(TIM3,&TIM_ICInitStructure);
+TIM_PWMIConfig(TIM3,&TIM_ICInitStructure);//占空比需要，两个通道读取一个输入
+TIM_SelectInputTrigger(TIM3,TIM_TS_TI1FP1);//
+TIM_SelectSlaveMode(TIM3,TIM_SlaveMode_Reset);
+//编码器接口模板                    要点两个通道
+TIM_EncoderInterfaceConfig(TIM3,TIM_EncoderMode_TI12,TIM_ICPolarity_Falling,TIM_ICPolarity_Falling);
+TIM_ICInitTypeDef TIM_ICInitStructure;
+TIM_ICStructInit(&TIM_ICInitStructure);
+TIM_ICInitStructure.TIM_Channel=TIM_Channel_1;
+TIM_ICInitStructure.TIM_ICFilter=0xf;
+TIM_ICInit(TIM3,&TIM_ICInitStructure);
+TIM_ICInitStructure.TIM_Channel=TIM_Channel_2;
+TIM_ICInitStructure.TIM_ICFilter=0xf;
+TIM_ICInit(TIM3,&TIM_ICInitStructure);
+//输出比较模板
+TIM_OCInitTypeDef TIM_OCInitStructure;//输出比较初始化
+TIM_OCStructInit(&TIM_OCInitStructure);//给所有成员赋值
+TIM_OCInitStructure.TIM_OCMode=TIM_OCMode_PWM1 ;
+TIM_OCInitStructure.TIM_OCPolarity=TIM_OCPolarity_High;//翻不翻转
+TIM_OCInitStructure.TIM_OutputState=TIM_OutputState_Enable;
+TIM_OCInitStructure.TIM_Pulse=50;      //CCR的值
+TIM_OC1Init(TIM2,&TIM_OCInitStructure);//在oc1通道上   引脚对应是CH1
+//外部中断的模板
+GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);//将外部中断的14号线映射到GPIOB，即选择PB14为外部中断引脚
+EXTI_InitTypeDef EXTI_InitStructure;						//定义结构体变量
+EXTI_InitStructure.EXTI_Line = EXTI_Line14;					//选择配置外部中断的14号线
+EXTI_InitStructure.EXTI_LineCmd = ENABLE;					//指定外部中断线使能
+EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;			//指定外部中断线为中断模式
+EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;		//指定外部中断线为下降沿触发
+EXTI_Init(&EXTI_InitStructure);
+//定时器中断模板
+void TIM2_IRQHandler (void)
+{
+	if (TIM_GetITStatus(TIM2,TIM_IT_Update)==SET)
+	{	
+		
+		TIM_ClearITPendingBit(TIM2,TIM_IT_Update);//清除标志位
+	}
+}
+//外部中断模板           注意必须开启AFIO时钟！  是个中断必须加NVIC模板
+void EXTI15_10_IRQHandler(void)
+{
+	if (EXTI_GetITStatus(EXTI_Line14) == SET)		
+	{
+		/*如果出现数据乱跳的现象，可再次判断引脚电平，以避免抖动*/
+		if (GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_14) == 0)
+		{
+			
+		}
+		EXTI_ClearITPendingBit(EXTI_Line14);		
+	}
+}
+//NVIC模板
+NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);//注意分组就一次
+NVIC_InitTypeDef NVIC_InitStructure;
+NVIC_InitStructure.NVIC_IRQChannel = EXTI0_IRQn;
+NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+NVIC_Init(&NVIC_InitStructure);
+//触发式按键模板
+uint8_t pbgn(void)
+{
+	uint8_t n=0;
+	if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0)
+	{
+		Delay_ms(20);
+		while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0);
+		Delay_ms(20);
+		n=1;
+	}
+	return n;
+}
+//模式化按键模板
+uint8_t n=0;
+uint8_t pbgn(void)
+{
+	if (GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0)
+	{
+		Delay_ms(20);
+		while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0);
+		Delay_ms(20);
+		n++;
+	}
+	if(n==x)
+	{
+		n=0;
+		(n=0时对应的操作);
+	}
+	return n;
+}
+//长按式按键模板         eg：97*10+30=1000ms=1s
+uint8_t pbgn(void)          
+{
+	unsigned short kn=0;
+	if(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0)
+	{
+		Delay_ms(30);
+		while(GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_0)==0)
+		{
+		Delay_ms(10);
+		kn++;
+		}
+		Delay_ms(30);
+	}
+	if(kn==0)
+		return 0;
+	else if(kn<97&&kn!=0)
+		return 1;
+	else 
+		return 2;
+} 
+//整数显示小数模板
+OLED_ShowNum(2,1,(float)AD_Getvalue()/4095*3.3,1);
+OLED_ShowNum(2,3,(uint16_t)((float)AD_Getvalue()/4095*3.3*100)%100,2);
+//ADC模板
+void adc_init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	GPIO_InitTypeDef GPIO_Initstructure;
+	GPIO_Initstructure.GPIO_Mode= GPIO_Mode_AIN ;
+	GPIO_Initstructure.GPIO_Pin=GPIO_Pin_0|GPIO_Pin_1;
+	GPIO_Initstructure.GPIO_Speed=GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_Initstructure);
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_StructInit(&ADC_InitStructure);
+	ADC_InitStructure.ADC_Mode=ADC_Mode_Independent;
+	ADC_InitStructure.ADC_ExternalTrigConv=ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_DataAlign=ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ContinuousConvMode=DISABLE;
+	ADC_InitStructure.ADC_ScanConvMode=DISABLE;
+	ADC_InitStructure.ADC_NbrOfChannel=1 ; 
+	ADC_Init(ADC1,&ADC_InitStructure);
+	ADC_Cmd(ADC1,ENABLE);
+	
+	ADC_ResetCalibration(ADC1);
+	while(ADC_GetResetCalibrationStatus(ADC1)==SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1)==SET);
+}
+uint16_t AD_Getvalue(void)
+{
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);//开始软件转化
+	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);//等待转化
+	return ADC_GetConversionValue(ADC1);//读取结果并清除标志位
+}
+//ADC单单点菜得值函数模板
+uint16_t AD_Getvalue(uint8_t channel)
+{
+	ADC_RegularChannelConfig(ADC1, channel,1,ADC_SampleTime_55Cycles5);
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);
+	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);
+	return ADC_GetConversionValue(ADC1);
+}
+//DMA模板
+void mydma( uint32_t arr1, uint32_t arr2,uint32_t size)
+{
+	Size=size;
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+	DMA_InitTypeDef DMA_InitStructure;
+	DMA_InitStructure.DMA_PeripheralBaseAddr=arr1;
+	DMA_InitStructure.DMA_PeripheralDataSize=DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_PeripheralInc= DMA_PeripheralInc_Enable;
+	
+	DMA_InitStructure.DMA_MemoryBaseAddr=arr2;
+	DMA_InitStructure.DMA_MemoryDataSize=DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryInc= DMA_MemoryInc_Enable ;
+	
+	DMA_InitStructure.DMA_DIR=DMA_DIR_PeripheralSRC ;
+	DMA_InitStructure.DMA_M2M=DMA_M2M_Enable;
+	DMA_InitStructure.DMA_BufferSize=size;
+	DMA_InitStructure.DMA_Mode=DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority=DMA_Priority_Medium ;
+	DMA_Init(DMA1_Channel1, &DMA_InitStructure);	
+	
+	DMA_Cmd(DMA1_Channel1, DISABLE);
+}
+void START_Transfer(void)
+{
+	DMA_Cmd(DMA1_Channel1, DISABLE);
+	DMA_SetCurrDataCounter(DMA1_Channel1, Size); 
+	DMA_Cmd(DMA1_Channel1, ENABLE);
+	
+	while(DMA_GetFlagStatus(DMA1_FLAG_TC1)==RESET);
+	DMA_ClearFlag(DMA1_FLAG_TC1);
+}
+//ADC+DMA模板
+uint16_t result[2];
+void adc_init(void)
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1,ENABLE);	
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);	
+	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
+	
+	GPIO_InitTypeDef GPIO_Initstructure;
+	GPIO_Initstructure.GPIO_Mode= GPIO_Mode_AIN ;
+	GPIO_Initstructure.GPIO_Pin=GPIO_Pin_0|GPIO_Pin_1;
+	GPIO_Initstructure.GPIO_Speed=GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_Initstructure);
+	
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_0,1,ADC_SampleTime_55Cycles5);
+	ADC_RegularChannelConfig(ADC1,ADC_Channel_1,2,ADC_SampleTime_55Cycles5);
+	
+	ADC_InitTypeDef ADC_InitStructure;
+	ADC_InitStructure.ADC_Mode=ADC_Mode_Independent;
+	ADC_InitStructure.ADC_ExternalTrigConv=ADC_ExternalTrigConv_None;
+	ADC_InitStructure.ADC_DataAlign=ADC_DataAlign_Right;
+	ADC_InitStructure.ADC_ContinuousConvMode=ENABLE;
+	ADC_InitStructure.ADC_ScanConvMode= ENABLE ;
+	ADC_InitStructure.ADC_NbrOfChannel=2 ; 
+	ADC_Init(ADC1,&ADC_InitStructure);
+	
+	DMA_InitTypeDef DMA_InitStructure;
+	
+	DMA_InitStructure.DMA_PeripheralBaseAddr=(uint32_t)&ADC1->DR;
+	DMA_InitStructure.DMA_PeripheralDataSize=DMA_PeripheralDataSize_HalfWord;
+	DMA_InitStructure.DMA_PeripheralInc= DMA_PeripheralInc_Disable ;
+	
+	DMA_InitStructure.DMA_MemoryBaseAddr=(uint32_t)result;
+	DMA_InitStructure.DMA_MemoryDataSize=DMA_MemoryDataSize_HalfWord;
+	DMA_InitStructure.DMA_MemoryInc= DMA_MemoryInc_Enable ;
+	
+	DMA_InitStructure.DMA_DIR=DMA_DIR_PeripheralSRC ;
+	DMA_InitStructure.DMA_M2M=DMA_M2M_Disable ;
+	DMA_InitStructure.DMA_BufferSize=2;
+	DMA_InitStructure.DMA_Mode=DMA_Mode_Circular ;
+	DMA_InitStructure.DMA_Priority=DMA_Priority_Medium ;
+	DMA_Init(DMA1_Channel1, &DMA_InitStructure);	
+	
+	DMA_Cmd(DMA1_Channel1,  ENABLE);//如果是硬件DMA转换不会立马开始
+	ADC_DMACmd( ADC1,  ENABLE );
+	ADC_Cmd(ADC1,ENABLE);
+	
+	ADC_ResetCalibration(ADC1);      //ADC校准
+	while(ADC_GetResetCalibrationStatus(ADC1)==SET);
+	ADC_StartCalibration(ADC1);
+	while(ADC_GetCalibrationStatus(ADC1)==SET);
+	
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);//如果双循环模式加这个，不用下面这个重装函数
+}
+void AD_Getvalue(void)//扫描且不循环，主函数while循环里加这个
+{
+	DMA_Cmd(DMA1_Channel1, DISABLE);
+	DMA_SetCurrDataCounter(DMA1_Channel1, 2); //DMA写数
+	DMA_Cmd(DMA1_Channel1, ENABLE);
+	
+	ADC_SoftwareStartConvCmd(ADC1,ENABLE);	//开始ADC转换
+	
+	while(DMA_GetFlagStatus(DMA1_FLAG_TC1)==RESET);//等待DMA转运完毕再显示
+	DMA_ClearFlag(DMA1_FLAG_TC1);
+}
+//延时函数
+void delay_ss(unsigned short time)   //一个delay函数
+{
+	unsigned short i=0;
+	while (time --)
+	{
+		i=12000;
+		while(i--)
+		{
+			short n=1000;
+			n--;
+		}
+	}
+}
+//串口发送初始化
+void usart_Init (void )
+{
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA,ENABLE);
+	
+	GPIO_InitTypeDef GPIO_Initstructure;
+	GPIO_Initstructure.GPIO_Mode=  GPIO_Mode_AF_PP ;
+	GPIO_Initstructure.GPIO_Pin=GPIO_Pin_9;
+	GPIO_Initstructure.GPIO_Speed=GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_Initstructure);
+	
+	USART_InitTypeDef USART_InitStructure;
+	USART_InitStructure.USART_BaudRate=9600;
+	USART_InitStructure.USART_HardwareFlowControl=USART_HardwareFlowControl_None ;
+	USART_InitStructure.USART_Mode=USART_Mode_Tx ;
+	USART_InitStructure.USART_Parity=USART_Parity_No ;
+	USART_InitStructure.USART_StopBits=USART_StopBits_1 ;
+	USART_InitStructure.USART_WordLength=USART_WordLength_8b ;
+	USART_Init(USART1, &USART_InitStructure);
+	
+	USART_Cmd(USART1, ENABLE);
+}
+//发送一个字节
+void send_Byte(uint16_t Data)
+{
+	USART_SendData(USART1,  Data);
+	while(USART_GetFlagStatus( USART1, USART_FLAG_TXE)==0);
+}
+//发送数组
+void send_arr(uint16_t *arr,uint16_t lenth)
+{
+	for (uint16_t i=0;i<lenth;i++)
+	{
+		send_Byte(arr[i]);
+	}
+}
+//发送字符串
+char string[]="abcde";
+void send_string(char *string)
+{
+	for(uint16_t i=0;string[i]!='\0';i++)
+		send_Byte(string[i]);
+}
+//发送字符形式数字
+uint32_t Pow(uint16_t x,uint16_t y)
+{
+	uint32_t result=1;
+	while(y)
+	{
+		result*=x;
+		y--;
+	}
+	return result;
+}
+void send_num(uint32_t num,uint8_t length)
+{
+	for (int8_t i=length-1;i>=0;i--)
+	send_Byte(num/Pow(10,i)%10+'0');
+}
+//以下注意开启mcroLIB，并且#include<stdio.h>
+//printf函数使用，注意要重定向，通过调整fputc函数,缺点不能多个串口同时用，因为此时send_Byte函数固定服务usart1
+int fputc(int ch ,FILE *f)
+{
+	send_Byte(ch);
+	return ch;
+}
+printf("NUM=%d\r\n",111);//  /r/n用来换行
+//多个串口可公用的格式化输出
+char String[100];
+sprintf(String,"NUM=%d\r\n",111);
+send_string(String);
+//多个串口可公用的格式化输出(封装版)
+void send_Mix(char *format,...)
+{
+	char string[100];
+	va_list arg;
+	va_start(arg,format);
+	vsprintf(string,format,arg);
+	va_end(arg);
+	send_string(string);
+}
+//主函数中最简单的轮询接收
+uint8_t Rxdata;
+while(1)
+	{
+		if(USART_GetFlagStatus( USART1, USART_FLAG_RXNE)==1)
+		{
+			Rxdata=USART_ReceiveData(USART1);
+			OLED_ShowHexNum(1, 1,Rxdata, 4);
+		}
+	}
+//中断接收模板
+void USART1_IRQHandler (void)
+{
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) == 1)	
+	{
+		Rxdata=USART_ReceiveData(USART1);
+		OLED_ShowHexNum(1, 1,Rxdata, 4);
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);	
+	}
+}
