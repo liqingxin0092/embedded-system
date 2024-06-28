@@ -44,12 +44,12 @@ void RTC_Init(uint32_t time, uint8_t flag, uint16_t random)
     }
 
     RCC->BDCR |= 1;    //开启LSE时钟
-    while ((RCC->BDCR >> 1) & 1 == 0);//等待LSE时钟启动完成
+    while (((RCC->BDCR >> 1) & 1) == 0);//等待LSE时钟启动完成
     RCC->BDCR |= 1 << 8;  //选择LSE作为RTC时钟
     RCC->BDCR |= 1 << 15; //RTC时钟使能
 
-    while ((RTC->CRL >> 3) & 1 == 0);//等待两个时钟同步
-    while ((RTC->CRL >> 5) & 1 == 0);//等待上一次RTC的操作完成
+    while (((RTC->CRL >> 3) & 1) == 0);//等待两个时钟同步
+    while (((RTC->CRL >> 5) & 1) == 0);//等待上一次RTC的操作完成
 
     RTC->CRL |= 1 << 4; //进入配置模式
 
@@ -59,7 +59,7 @@ void RTC_Init(uint32_t time, uint8_t flag, uint16_t random)
 
     RTC->CRL &= ~(1 << 4); //退出配置模式
 
-    while ((RTC->CRL >> 5) & 1 == 0);//等待上一次RTC的操作完成
+    while (((RTC->CRL >> 5) & 1) == 0);//等待上一次RTC的操作完成
 
 exit: while (0);
 }

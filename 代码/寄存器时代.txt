@@ -1,0 +1,31 @@
+void SetSysClockTo72(void)
+{
+
+    RCC->CR |= 1 << 16;//开启HSE
+    while (((RCC->CR >> 17) & 1) == 0);//等待HSE准备
+
+    FLASH->ACR |= 2;    //配置系统时钟与FLASH读取延时
+
+    RCC->CFGR &= ~(1 << 7);    //AHB  不分频
+    RCC->CFGR &= ~(1 << 13);   //APB2 不分频
+    RCC->CFGR |= 4 << 8;       //APB1 2分频
+
+    RCC->CFGR |= 1 << 16;   //选择HSE输入PLL
+    RCC->CFGR |= 7 << 18;   //PLL9倍频
+
+    RCC->CR |= 1 << 24;//开启PLL
+    while (((RCC->CR >> 25) & 1) == 0);//等待PLL准备
+
+    RCC->CFGR |= 2;//选择PLL作为系统时钟
+    while (((RCC->CFGR >> 2) & 3) != 2);//等待PLL准备作为系统时钟
+}
+
+
+//GPIO配置例程
+    RCC->APB2ENR|=0x04;  //开启GPIOA的时钟
+    
+    GPIOA->CRL&=~(1<<10);//配置A2推挽
+    GPIOA->CRL|=1<<9;  //配置A2  2MHZ
+    
+    GPIOA->CRL&=~(1<<14);//配置A3推挽
+    GPIOA->CRL|=1<<13;  //配置A3  2MHZ
