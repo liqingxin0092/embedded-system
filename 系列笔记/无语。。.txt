@@ -8,8 +8,6 @@
 
 5.串口DMA,也要开全局中断，NVIC。
 
-6.weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)函数修改滴答计时器时基。HAL-Delay函数适应主频。
-
 7.官方文件中变量的值不一定是最终的值。
 
 8.一步步试.

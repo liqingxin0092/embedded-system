@@ -1,0 +1,5 @@
+1.weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)函数修改滴答计时器时基。HAL-Delay函数适应主频。
+
+2.与等于操作合并，或等于操作合并。
+
+3.使用寄存器位的宏定义
