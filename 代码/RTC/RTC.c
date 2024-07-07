@@ -1,6 +1,5 @@
+#include "stm32f10x.h"
 #include "RTC.h"
-
-
 //用户可以自己使用
 time_t CurrentTime;
 struct tm CurrentTimeStruct;

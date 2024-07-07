@@ -1,5 +1,4 @@
-
-#include "flash.h"
+#include "stm32f10x.h" 
 
 //读取flash
 uint16_t  FlashRead(uint32_t add)
