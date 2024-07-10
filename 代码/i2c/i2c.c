@@ -12,10 +12,16 @@ void deal(uint16_t Pin,GPIO_PinState PinState)
 }
 void start()
 {	
-
 	SCL(1);//在高的时候边SDA，显示出起始或终止
     SDA(1);
 	SDA(0);
+	SCL(0);
+}
+void restart()
+{
+    SDA(1);
+    SCL(1);
+    SDA(0);
 	SCL(0);
 }
 void stop()
@@ -43,15 +49,15 @@ uint8_t receive()   //收一个字节
 	{
         SCL(0); //从机放
         SCL(1); //主机读
-        receive_data|=HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12)<<(7-i);
+        receive_data|=   (((GPIO_I2C->IDR)>>GPIO_PIN_SDA)&1) <<(7-i);
 	}
 	SCL(0);
 	return receive_data;
 }
-void send_ack(void)
+void send_ack(uint8_t i)
 {
 	SCL(0);//开始改变
-	SDA(0);//应答
+	SDA(i);//应答
 	SCL(1);//从机读取
 	SCL(0);//下一次
 }

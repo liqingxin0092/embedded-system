@@ -13,10 +13,11 @@ void deal(uint16_t Pin,GPIO_PinState PinState);
 #define SDA(PinState)   deal(GPIO_PIN_SDA,(GPIO_PinState) (PinState))
 
 void start(void);
+void restart(void);
 void stop(void);
 void send(uint8_t bite);
 uint8_t receive(void);
-void send_ack(void);
+void send_ack(uint8_t i);
 uint8_t receive_ack(void);
 
 #endif
