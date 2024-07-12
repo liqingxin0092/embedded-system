@@ -1,135 +1,135 @@
 #include "i2c.h"
-void deal(uint16_t Pin,GPIO_PinState PinState)
+void deal(uint16_t Pin, GPIO_PinState PinState)
 {
-    if(PinState==1)
+    if (PinState == 1)
     {
-        GPIO_I2C->ODR |=1<<Pin;
+        GPIO_I2C->ODR |= 1 << Pin;
     }
-    else if (PinState==0)
+    else if (PinState == 0)
     {
-        GPIO_I2C->ODR&=~(1<<Pin);
+        GPIO_I2C->ODR &= ~(1 << Pin);
     }
 }
 void start()
-{	
-	SCL(1);//在高的时候变SDA，显示出起始或终止
+{
+    SCL(1); // 锟节高碉拷时锟斤拷锟絊DA锟斤拷锟斤拷示锟斤拷锟斤拷始锟斤拷锟斤拷止
     SDA(1);
-	SDA(0);
-	SCL(0);
+    SDA(0);
+    SCL(0);
 }
 void restart()
 {
     SDA(1);
     SCL(1);
     SDA(0);
-	SCL(0);
+    SCL(0);
 }
 void stop()
-{	
-    SDA(0); //因为SDA的开始电平不确定，先操作SDA
-	SCL(0);
-	SCL(1);
-	SDA(1);
-}
-void send(uint8_t bite) //发一个字节
 {
-	for (uint8_t i=0;i<8;i++)
-	{
-		SCL(0);
-		SDA((bite&(0x80>>i))>>(7-i));
-		SCL(1);
-	}
-	SCL(0);
+    SDA(0); // 锟斤拷为SDA锟侥匡拷始锟斤拷平锟斤拷确锟斤拷锟斤拷锟饺诧拷锟斤拷SDA
+    SCL(0);
+    SCL(1);
+    SDA(1);
 }
-uint8_t receive()   //收一个字节
+void send(uint8_t bite) // 锟斤拷一锟斤拷锟街斤拷
 {
-	uint8_t receive_data=0;
-    SDA(1);//主机释放SDA，开漏高电平，相当于输入
-	for(uint8_t i=0;i<8;i++)
-	{
-        SCL(0); //从机放
-        SCL(1); //主机读
-        receive_data|=   (((GPIO_I2C->IDR)>>GPIO_PIN_SDA)&1) <<(7-i);
-	}
-	SCL(0);
-	return receive_data;
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        SCL(0);
+        SDA((bite & (0x80 >> i)) >> (7 - i));
+        SCL(1);
+    }
+    SCL(0);
+}
+uint8_t receive() // 锟斤拷一锟斤拷锟街斤拷
+{
+    uint8_t receive_data = 0;
+    SDA(1); // 锟斤拷锟斤拷锟酵凤拷SDA锟斤拷锟斤拷漏锟竭碉拷平锟斤拷锟洁当锟斤拷锟斤拷锟斤拷
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        SCL(0); // 锟接伙拷锟斤拷
+        SCL(1); // 锟斤拷锟斤拷锟斤拷
+        receive_data |= (((GPIO_I2C->IDR) >> GPIO_PIN_SDA) & 1) << (7 - i);
+    }
+    SCL(0);
+    return receive_data;
 }
 void send_ack(uint8_t i)
 {
-	SCL(0);//开始改变
-	SDA(i);//应答
-	SCL(1);//从机读取
-	SCL(0);//下一次
+    SCL(0); // 锟斤拷始锟侥憋拷
+    SDA(i); // 应锟斤拷
+    SCL(1); // 锟接伙拷锟斤拷取
+    SCL(0); // 锟斤拷一锟斤拷
 }
 uint8_t receive_ack(void)
 {
-	SDA(1);//主机释放
-	uint8_t receive_ack;  
-	SCL(0);  //从机放数据
-	SCL(1);   //主机读取
-	receive_ack=  ((GPIO_I2C->IDR)>>GPIO_PIN_SDA)&1;
-	SCL(0);   //下一次
-	return receive_ack;
+    SDA(1); // 锟斤拷锟斤拷锟酵凤拷
+    uint8_t receive_ack;
+    SCL(0); // 锟接伙拷锟斤拷锟斤拷锟斤拷
+    SCL(1); // 锟斤拷锟斤拷锟斤拷取
+    receive_ack = ((GPIO_I2C->IDR) >> GPIO_PIN_SDA) & 1;
+    SCL(0); // 锟斤拷一锟斤拷
+    return receive_ack;
 }
-//指定地址写一个字节
-void WriteReg(uint8_t address,uint8_t reg_address,uint8_t data)
+// 指锟斤拷锟斤拷址写一锟斤拷锟街斤拷
+void WriteReg(uint8_t address, uint8_t reg_address, uint8_t data)
 {
     start();
-    
-    send(address);   //发送设备地址
-    receive_ack();//判断从机有没有接收应答，为了拼接时序
-    
-    send(reg_address); //发送设备寄存器地址
+
+    send(address); // 锟斤拷锟斤拷锟借备锟斤拷址
+    receive_ack(); // 锟叫断从伙拷锟斤拷没锟叫斤拷锟斤拷应锟斤拷为锟斤拷拼锟斤拷时锟斤拷
+
+    send(reg_address); // 锟斤拷锟斤拷锟借备锟侥达拷锟斤拷锟斤拷址
     receive_ack();
-    
-    send(data);//指定地址下的数据
+
+    send(data); // 指锟斤拷锟斤拷址锟铰碉拷锟斤拷锟斤拷
     receive_ack();
-    
+
     stop();
 }
-uint16_t ReadReg(uint8_t address,uint8_t reg_address)
+uint16_t ReadReg(uint8_t address, uint8_t reg_address)
 {
     uint16_t data;
     start();
-    
-    send(address);   //设备地址
-    receive_ack();//判断从机有没有接收应答
-    
-    send(reg_address); //发送设备寄存器地址
+
+    send(address); // 锟借备锟斤拷址
+    receive_ack(); // 锟叫断从伙拷锟斤拷没锟叫斤拷锟斤拷应锟斤拷
+
+    send(reg_address); // 锟斤拷锟斤拷锟借备锟侥达拷锟斤拷锟斤拷址
     receive_ack();
-    
+
     restart();
-    send(address|1);  //意思是要读了
+    send(address | 1); // 锟斤拷思锟斤拷要锟斤拷锟斤拷
     receive_ack();
-    
-    data=receive();
-    send_ack(1);//非应答
-    
+
+    data = receive();
+    send_ack(1); // 锟斤拷应锟斤拷
+
     stop();
     return data;
 }
 
-void ReadRegs(uint8_t address,uint8_t reg_address,uint8_t *buffer,uint8_t lenth)
+void ReadRegs(uint8_t address, uint8_t reg_address, uint8_t *buffer, uint8_t lenth)
 {
     uint8_t i;
     start();
-    
-    send(address);   //设备地址
-    receive_ack();//判断从机有没有接收应答
-    
-    send(reg_address); //发送设备寄存器地址
+
+    send(address); // 锟借备锟斤拷址
+    receive_ack(); // 锟叫断从伙拷锟斤拷没锟叫斤拷锟斤拷应锟斤拷
+
+    send(reg_address); // 锟斤拷锟斤拷锟借备锟侥达拷锟斤拷锟斤拷址
     receive_ack();
-    
+
     restart();
-    send(address|1);  //意思是要读了
+    send(address | 1); // 锟斤拷思锟斤拷要锟斤拷锟斤拷
     receive_ack();
-    for(i=0;i<lenth-1;i++)
+    for (i = 0; i < lenth - 1; i++)
     {
-        *(buffer+i)=receive();
-         send_ack(0);//应答
+        *(buffer + i) = receive();
+        send_ack(0); // 应锟斤拷
     }
-    *(buffer+i)=receive();
-    send_ack(1);//非应答
-    
+    *(buffer + i) = receive();
+    send_ack(1); // 锟斤拷应锟斤拷
+
     stop();
 }
