@@ -13,8 +13,8 @@ void USART_Printf( UART_HandleTypeDef * chuankou,char *format, ...)
 }
 
 
-USART_Printf( &huart1,"t0.txt=\"成功了\"\xff\xff\xff"); //直接发就行，这是个指令，屏幕会接收
-
+USART_Printf( &huart1,"t0.txt=\"成功了\"\xff\xff\xff"); //直接发就行，这是个指令，屏幕
+会接收
 click b0,1 //按案件
 click b0,0//松按键
 
