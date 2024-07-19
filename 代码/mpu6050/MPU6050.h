@@ -47,6 +47,7 @@ typedef struct
 }Angle;
 extern uint8_t Test;
 void TestMPU6050(void);
+void HardWare_TestMPU6050(void);
 void MPU6050Init(void);
 void GetData(SixAxisData * data);
 void GetAngle(Angle * angle,SixAxisData * data);

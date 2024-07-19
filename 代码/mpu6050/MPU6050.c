@@ -5,11 +5,20 @@ uint8_t Test;
 void TestMPU6050()
 {
   start();
-  send(MPU6050_ADDRESS);        //1101 000 0,前7位是MPU6050的地址,最后一位意为写操作
+  send(0xa0);        //1101 000 0,前7位是MPU6050的地址,最后一位意为写操作
   Test=receive_ack();
   stop();   
 }
-
+void HardWare_TestMPU6050(void)
+{
+  I2C1->CR1|=1<<8; //产生起始条件
+  while(((I2C1->SR1)&1)==0);//等待起始条件发送
+    
+  I2C1->DR=0xD0; //发送地址
+  while((((I2C1->SR1)>>1)&1)==0);//等待地址发送结束
+    
+  I2C1->CR1|=1<<9; //产生结束条件   
+}
 void MPU6050Init()
 {
     WriteReg(MPU6050_ADDRESS,MPU6050_PWR_MGMT_1,1);//解除睡眠，温度传感器不失能，选择x轴陀螺仪时钟
