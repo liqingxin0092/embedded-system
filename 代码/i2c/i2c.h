@@ -2,29 +2,33 @@
 #define __IC2_H
 
 #include "main.h"
+#include "i2c.h"
 
-#define GPIO_I2C          GPIOB
-#define GPIO_PIN_SCL      8
-#define GPIO_PIN_SDA      9
+// User Configuration
+#define I2C_SCL_PORT GPIOE
+#define GPIO_PIN_SCL 0
 
-void deal(uint16_t Pin,GPIO_PinState PinState);
+#define I2C_SDA_PORT GPIOB
+#define GPIO_PIN_SDA 8
 
-#define SCL(PinState)   deal(GPIO_PIN_SCL,(GPIO_PinState) (PinState))
-#define SDA(PinState)   deal(GPIO_PIN_SDA,(GPIO_PinState) (PinState))
-//Èí¼şÊ±Ğò²ã
-void start(void);  
+// Basic Level
+void deal(GPIO_TypeDef *IIC_PORT, uint16_t Pin, GPIO_PinState PinState);
+#define SCL(PinState) deal(I2C_SCL_PORT, GPIO_PIN_SCL, (GPIO_PinState)(PinState))
+#define SDA(PinState) deal(I2C_SDA_PORT, GPIO_PIN_SDA, (GPIO_PinState)(PinState))
+
+// æ—¶åºå±‚
+void start(void);
 void restart(void);
 void stop(void);
 void send(uint8_t bite);
 uint8_t receive(void);
 void send_ack(uint8_t i);
 uint8_t receive_ack(void);
-//Èí¼şÓ¦ÓÃ²ã
-void WriteReg(uint8_t address,uint8_t reg_address,uint8_t data);
-uint16_t ReadReg(uint8_t address,uint8_t reg_address);
-void ReadRegs(uint8_t address,uint8_t reg_address,uint8_t *buffer,uint8_t lenth);
-//Ó²¼şi2c  //×¢ÒâIO¿Ú²»Í¬
-void GPIOx_I2c_ToFast_Init(void);   //Ó²¼ş³õÊ¼»¯£¬×¢ÒâÊÇ¿ìËÙÄ£Ê½ 30mhz
-void Hardare_WriteReg(uint8_t address,uint8_t reg_address,uint8_t data);
-uint16_t Hardare_ReadReg(uint8_t address,uint8_t reg_address);
+
+// åº”ç”¨å±‚
+void WriteReg(uint8_t address, uint8_t reg_address, uint8_t data);
+void WriteRegs(uint8_t *ptr, uint8_t length);
+uint16_t ReadReg(uint8_t address, uint8_t reg_address);
+void ReadRegs(uint8_t address, uint8_t reg_address, uint8_t *buffer, uint8_t lenth);
+
 #endif

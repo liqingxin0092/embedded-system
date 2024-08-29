@@ -1,0 +1,11 @@
+${workspaceFolder}/Core/Inc
+${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc
+${workspaceFolder}/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
+${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+${workspaceFolder}/Drivers/CMSIS/Include
+
+
+//注意续在后面
+DEBUG
+STM32F407xx
+USE_HAL_DRIVER
