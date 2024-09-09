@@ -9,3 +9,8 @@ ${workspaceFolder}/Drivers/CMSIS/Include
 DEBUG
 STM32F407xx
 USE_HAL_DRIVER
+
+//LL库
+DEBUG
+STM32F407xx
+USE_FULL_LL_DRIVER

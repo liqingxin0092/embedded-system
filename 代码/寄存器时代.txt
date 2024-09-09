@@ -29,3 +29,34 @@ void SetSysClockTo72(void)
     
     GPIOA->CRL&=~(1<<14);//配置A3推挽
     GPIOA->CRL|=1<<13;  //配置A3  2MHZ
+
+
+//PWM输入
+
+  //使能PWM输出
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  //使能输入捕获
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
+  TIM1->CNT=0;
+
+float persent;
+uint16_t fre;
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	uint32_t CCR1_Count,CCR2_Count;
+	if(htim==&htim1)//捕获定时器
+	{
+		if(htim->Channel==HAL_TIM_ACTIVE_CHANNEL_2)//TI1FP2，下降沿
+		{
+			CCR2_Count=TIM1->CCR2;
+		}
+		if(htim->Channel==HAL_TIM_ACTIVE_CHANNEL_1)//TI1FP1,上升沿,复位
+		{
+			CCR1_Count=TIM1->CCR1;
+			persent=(float)CCR2_Count/CCR1_Count*100;
+			fre=1000000/CCR1_Count;
+		}
+
+	}
+}
