@@ -19,6 +19,12 @@ DRAM分为SDRAM,DDR.
 
 DRAM用电容的电量来表示0和1,需要刷新操作.
 
+4.DDR SDRAM
+
+DDR全称是DDR SDRAM (Double Data Rate SDRAM，双倍速率 SDRAM).
+一个时钟周期内传输两次数据,能够在时钟的上升沿和下降沿各传输一次数据.
+双倍速率同步动态随机存储器.
+
 二.SDRAM(同步动态随机存储器)
 
 1.为什么需要SDRAM.

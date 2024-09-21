@@ -18,3 +18,147 @@
         (4).检测意外的存储访问,如堆栈溢出,数组越界等.
         (5).将SRAM或RAM空间定义为不可执行,防止代码注入攻击.
 总之,提高嵌入式系统的健壮性,使系统更加安全.
+
+5.保护运行在其上的系统程序不被其他任务破坏.
+
+6.MPU可以配置保护8(F7)/16(H7)个内存区域,每个区域最小要求256字节,每个区域还可配置8个子区域(大小一样).
+
+7.MPU对0~4GB的地址空间进行保护.16个内存区域保护的地方可能重叠.按优先级高的配置算.15号区域优先级最高,0号最低.
+
+8.除了上述16个区域,还有背景区(default region),序号-1,对0~4g的地址空间有一个默认的设置.
+
+9.访问权限: MPU_REGION_NO_ACCESS:无访问(特权级&用户级都不可访问).
+MPU_REGION_NO_PRIV_RW:仅支持特权级读写访问.
+MPU_REGION_NO_PRIV_RW_URO:禁止用户写访问,但可以读,特权可读写访问.
+MPU_REGION_FULL_ACCESS:全访问.
+MPU_REGION_PRIV_RO:仅支持特权读访问.
+MPU_REGION_PRIV_RO_URO:只读.(特权&用户都不可以写).
+
+配置好MPU,不得访问定义外的地址空间,也不得访问未经授权的区域,否则属于非法访问(触发错误异常,MemMange).
+
+10.MPU配置内存区域的访问属性.
+三种内存类型:
+(1).Normal memory:
+CPU以最高效的方式加载和存储字节,半字和字,CPU对于这种内存区的加载或存储不一定要按照程序代码的顺序执行.
+ROM,FLASH,SRAM.
+(2).Device memory:
+加载和存储严格按照次序进行,确保寄存器按照正确顺序设置.
+外设.
+(3).Strong ordered memory(强制顺序):
+程序完全按照代码顺序执行,CPU会等待当前加载存储执行完毕后才会执行下一条指令,导致性能下降.
+从(1)-->(3)性能依次下降.
+
+对应硬件:Device Memory:CPU经过Buffer缓冲和Memory通信.
+Normal Memory:CPU通过Cache(高速缓存)和可选择的Buffer缓冲来和Memory通信.
+Strong ordered Memory:CPU直接和Memory通信.
+
+可缓存:有Cache.
+可缓冲:Buffer.
+可共享:主机间的数据同步.关闭Cache,被动单元(如SRAM)里面的数据被任何主动设备读取的值都一样,因为CPU直接写数据到存储器,不经过Cache.此举对读操作影响大,对写操作几乎没影响.
+
+11.性能最强的是启用Cache,带缓存,不共享.
+
+12.Cache(高速缓存)是提升STM32性能的关键一步.
+
+F1和F4有MPU却不用,因为没Cache.F7和H7有.
+
+13.M7内核做了一级Cache支持,Cache分为数据缓存D-Cache,和指令缓存I-Cache.
+
+F7和H7在容量上不一样:
+I-Cache:F7:4K,H7:16K.
+D-Cache:F7:4K,H7:16K.
+TCM RAM工作频率也是480MHz(H7为例),不需要配置MPU和Cache.
+AXI SRAM,SRAM1,SRAM2:工作频率为240MHz.
+
+14.数据D-Cache可以使CPU加速访问SRAM.
+
+15.MPU指定区域的Cache策略.
+
+Cache:支持4种基本操作:1.使能.2.禁止3.清空.4.无效化. 后两个操作是出现数据不一致时的可选操作.
+
+16.写操作:CPU要写的SRAM区数据在Cache中已经开辟了对应的区域,就叫写命中(Cache hit),如果Cache里面没有开辟对应的区域,这就是所谓的Cache Miss.
+
+读操作:CPU要读取的SRAM区数据在Cache中已经加载好,叫读命中(Cache hit),如果要读的数据没有在里面,就是读Cache Miss.
+
+保证Cache有足够高的命中率,尽量减少Cache miss,读/写速度会有比较大的提高.
+
+17.Core读Cache.
+
+Code <----> Cache <----> SRAM. 
+Cache hit:直接从Cache中读出数据即可.(非常快).
+Cache miss:
+         read through:直接从内存中读出,不用Cache.
+         read allocate:把数据从内存加载到Cache,再从Cache中读. 
+
+18.Core 写Cache.
+
+Code <----> Cache <----> SRAM. 
+
+Cache hit:
+        write through:写到内存中,并同时放到Cache里,内存和Cache同步更新.
+        write back:数据更新时只写入Cache,只在数据被替换出Cache时,被修改的Cache数据才会写入内存.  写入速度块. 在数据还没更新到SRAM里时,其他设备对SRAM进行访问时,数据会不同步.
+Cache miss:
+
+        Write allocate:先把数据载入到Cache,对Cache写后,更新到内存.
+
+        no write allocate:直接写入内存,不用Cache.
+
+19.数据不一致问题解决.
+
+设置共享属性:Cache相当于没有开启.
+
+软件进行Cache维护
+
+Clean清空:Cache已变化,SRAM数据未更新.DMA搬运数据前,将Cache相对应数据更新到SRAM.
+
+invalidate无效化:SRAM数据已变化,Cache未更新.DMA搬运数据后,Cache数据无效,需要从SRAM中读取.
+
+相关函数在CMSIS里面,core_cm7.h
+
+20.MPU寄存器在内核手册有介绍.鹿小班的H7内核手册.
+或者Cortex-m3权威指南(中译里有).
+
+TEX位设置Cache的策略.
+
+21.难点是如何让内存区最大限度发挥性能.
+策略看表配置.
+MemManage_Handler(void);出现错误的中断函数.
+下面这句可以放在两句SCE_ENABLEXCache();后面.
+源自正点原子.
+SCB->CACR|=1<<2;//强制D-Cache透写,如果不开启透写实际可能会遇到各种问题.
+在指定位置创建数组.
+uint8_t mpudata[128] __attribute__((at (0x20002000)));
+
+22.要使得FSMC操作的区域严格按照时序 进行,在保证时序的基础上追求性能.
+
+23.配置参考(摘自正点原子例程).
+void mpu_memory_protection(void)
+{
+    /* 保护整个DTCM,共128K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+    mpu_set_protection(0x20000000, MPU_REGION_SIZE_128KB, MPU_REGION_NUMBER1, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_CACHEABLE, MPU_ACCESS_BUFFERABLE);
+
+    /* 保护整个AXI SRAM,共512K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+    mpu_set_protection(0x24000000, MPU_REGION_SIZE_512KB,MPU_REGION_NUMBER2, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_CACHEABLE, MPU_ACCESS_BUFFERABLE);
+
+    /* 保护整个SRAM1~SRAM3,共288K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+    mpu_set_protection(0x30000000, MPU_REGION_SIZE_512KB,MPU_REGION_NUMBER3, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_CACHEABLE, MPU_ACCESS_BUFFERABLE);
+
+    /* 保护整个SRAM4,共64K字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+    mpu_set_protection(0x38000000, MPU_REGION_SIZE_64KB, MPU_REGION_NUMBER4, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_CACHEABLE, MPU_ACCESS_BUFFERABLE);
+
+    /* 保护MCU LCD屏所在的FMC区域,,共64M字节,允许指令访问,禁止共用,禁止cache,禁止缓冲 */
+    mpu_set_protection(0x60000000, MPU_REGION_SIZE_64MB, MPU_REGION_NUMBER5, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_NOT_CACHEABLE, MPU_ACCESS_NOT_BUFFERABLE);
+
+    /* 保护SDRAM区域,共64M字节,允许指令访问,禁止共用,允许cache,允许缓冲 */
+    mpu_set_protection(0XC0000000, MPU_REGION_SIZE_64MB, MPU_REGION_NUMBER6, MPU_INSTRUCTION_ACCESS_ENABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_CACHEABLE, MPU_ACCESS_BUFFERABLE);
+
+    /* 保护整个NAND FLASH区域,共256M字节,禁止指令访问,禁止共用,禁止cache,禁止缓冲 */
+    mpu_set_protection(0X80000000, MPU_REGION_SIZE_256MB, MPU_REGION_NUMBER7, MPU_INSTRUCTION_ACCESS_DISABLE,
+                       MPU_REGION_FULL_ACCESS, MPU_ACCESS_NOT_SHAREABLE, MPU_ACCESS_NOT_CACHEABLE, MPU_ACCESS_NOT_BUFFERABLE);
+}
