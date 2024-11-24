@@ -10,7 +10,8 @@ def main():
     
     tft=TFT(spi,2,15,5)
     tft.initr()
-    tft.fill(tft.WHITE)
+    tft.rgb(True)
+    tft.fill(tft.BLUE)
 #     tft.image(0,0,44,44,picture.arr)
 
 

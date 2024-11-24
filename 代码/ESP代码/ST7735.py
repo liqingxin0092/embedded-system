@@ -1,9 +1,7 @@
 #driver for Sainsmart 1.8" TFT display ST7735
 #Translated by Guy Carver from the ST7735 sample code.
 #Modirfied for micropython-esp32 by boochow 
-
-import machine
-from machine import SPI,Pin
+import machine 
 import time
 from math import sqrt
 #1.1尺寸一次纵向跳跃7个像素
@@ -159,7 +157,6 @@ class TFT(object) :
   def pixel( self, aPos, aColor ) :
     '''Draw a pixel at the given position'''
     if 0 <= aPos[0] < self._size[0] and 0 <= aPos[1] < self._size[1]:
-        print("yes")
         self._setwindowpoint(aPos)
         self._pushcolor(aColor)
 
@@ -192,9 +189,75 @@ class TFT(object) :
         else:
           py += aFont["Height"] * wh[1] + 1
           px = aPos[0]
+  def text_no_black( self, aPos, aString, aColor, aFont, aSize = 1, nowrap = False ) :
+    '''Draw a text at the given position.  If the string reaches the end of the
+       display it is wrapped to aPos[0] on the next line.  aSize may be an integer
+       which will size the font uniformly on w,h or a or any type that may be
+       indexed with [0] or [1].'''
 
-#   @micropython.native
+    if aFont == None:
+      return
+
+    #Make a size either from single value or 2 elements.
+    if (type(aSize) == int) or (type(aSize) == float):
+      wh = (aSize, aSize)
+    else:
+      wh = aSize
+
+    px, py = aPos
+    width = wh[0] * aFont["Width"] + 1
+    for c in aString:
+      self.char_no_black((px, py), c, aColor, aFont, wh)
+      px += width
+      #We check > rather than >= to let the right (blank) edge of the
+      # character print off the right of the screen.
+      if px + width > self._size[0]:
+        if nowrap:
+          break
+        else:
+          py += aFont["Height"] * wh[1] + 1
+          px = aPos[0]
   def char( self, aPos, aChar, aColor, aFont, aSizes ) :
+      '''Draw a character at the given position using the given font and color.
+         aSizes is a tuple with x, y as integer scales indicating the
+         # of pixels to draw for each pixel in the character.'''
+
+      if aFont == None:
+        return
+
+      startchar = aFont['Start']
+      endchar = aFont['End']
+
+      ci = ord(aChar)
+      if (startchar <= ci <= endchar):
+        fontw = aFont['Width']
+        fonth = aFont['Height']
+        ci = (ci - startchar) * fontw
+
+        charA = aFont["Data"][ci:ci + fontw]
+        px = aPos[0]
+        if aSizes[0] <= 1 and aSizes[1] <= 1 :
+          buf = bytearray(2 * fonth * fontw)
+          for q in range(fontw) :
+            c = charA[q]
+            for r in range(fonth) :
+              if c & 0x01 :
+                pos = 2 * (r * fontw + q)
+                buf[pos] = aColor >> 8
+                buf[pos + 1] = aColor & 0xff
+              c >>= 1
+          self.image(aPos[0], aPos[1], aPos[0] + fontw - 1, aPos[1] + fonth - 1, buf)
+        else:
+          for c in charA :
+            py = aPos[1]
+            for r in range(fonth) :
+              if c & 0x01 :
+                self.fillrect((px, py), aSizes, aColor)
+              py += aSizes[1]
+              c >>= 1
+            px += aSizes[0]
+#   @micropython.native
+  def char_no_black( self, aPos, aChar, aColor, aFont, aSizes ) :
     '''Draw a character at the given position using the given font and color.
        aSizes is a tuple with x, y as integer scales indicating the
        # of pixels to draw for each pixel in the character.'''
@@ -202,28 +265,25 @@ class TFT(object) :
     if aFont == None:
       return
 
-    startchar = aFont['Start']
-    endchar = aFont['End']
+    startchar = aFont['Start'] #0
+    endchar = aFont['End']     #254
+    ci = ord(aChar)            #获取ascii码
+    if (startchar <= ci <= endchar): #如果参数字符在0~254之间
+      fontw = aFont['Width']   #5
+      fonth = aFont['Height']  #8
+      ci = (ci - startchar) * fontw  #  ( 传入的ascii码 - 0 ) * 5
 
-    ci = ord(aChar)
-    if (startchar <= ci <= endchar):
-      fontw = aFont['Width']
-      fonth = aFont['Height']
-      ci = (ci - startchar) * fontw
-
-      charA = aFont["Data"][ci:ci + fontw]
-      px = aPos[0]
-      if aSizes[0] <= 1 and aSizes[1] <= 1 :
-        buf = bytearray(2 * fonth * fontw)
-        for q in range(fontw) :
-          c = charA[q]
-          for r in range(fonth) :
-            if c & 0x01 :
-              pos = 2 * (r * fontw + q)
-              buf[pos] = aColor >> 8
-              buf[pos + 1] = aColor & 0xff
-            c >>= 1
-        self.image(aPos[0], aPos[1], aPos[0] + fontw - 1, aPos[1] + fonth - 1, buf)
+      charA = aFont["Data"][ci :  ci + fontw] #数组中从 下标为 ascii码 到 ascii码+5 的5个数据
+      px = aPos[0] #横坐标值(竖屏)
+      if aSizes[0] <= 1 and aSizes[1] <= 1 : #如果尺寸在这个范围就打印最小的形式
+        buf = bytearray(2 * fonth * fontw) #创建一个 2 * 5 * 8 大小的数组 ,2因为RGB565占2字节
+        for q in range(fontw) : #q取值 0 ~ 4
+            c=charA[q]
+            for r in range(fonth) : #r 取值 0 ~ 7
+                if c & 0x01 : #如果c的末位 == 1
+                  self.pixel(  (aPos[0]+q,aPos[1]+r), aColor )
+                c >>= 1
+#         self.image(aPos[0], aPos[1], aPos[0] + fontw - 1, aPos[1] + fonth - 1, buf)
       else:
         for c in charA :
           py = aPos[1]
@@ -234,6 +294,7 @@ class TFT(object) :
             c >>= 1
           px += aSizes[0]
 
+  
 #   @micropython.native
   def line( self, aStart, aEnd, aColor ) :
     '''Draws a line from aStart to aEnd in the given color.  Vertical or horizontal
@@ -926,10 +987,4 @@ def makeg(  ) :
   t.fill(0)
   return t
 
-spi = SPI(2, baudrate=10000000, polarity=0, phase=0, sck=Pin(18), mosi=Pin(23))
-BL = Pin(22, Pin.OUT)    
-BL.value(1)
 
-tft=TFT(spi,2,15,5)
-tft.initr()
-tft.fill(tft.WHITE)

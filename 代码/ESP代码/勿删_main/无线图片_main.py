@@ -38,19 +38,7 @@ def main():
     tft.fill(tft.BLACK)
     
     do_connect()#连WIFI
-#     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#     s.bind(("", 7890))
-#     with open("output1.bmp", "wb") as f:
-#         while True:
-#             data,info = s.recvfrom(1024)
-#             print(data)
-#             if data=='123456789'.encode("utf-8"):
-#                 break
-#             else :
-#                 f.write(data)
-#     print("接收完毕.")
-#     s.close()
-###################################
+
     server_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_s.bind(("", 7890))
     server_s.listen(128)
