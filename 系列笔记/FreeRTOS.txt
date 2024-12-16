@@ -50,4 +50,36 @@ xTaskresumeAll() 恢复任务调度器 ,这个函数进入了临界区
 
 (4).需要把宏configUSE_TIME_SLICING和configUSE_PREEMPTION置1
 
-7.freeRTOS时间管理.
+7.freeRTOS使用队列主要流程:创建队列,写队列,读队列.
+
+有动态创建和静态创建队列之分.
+
+xQueueCreate() 动态方式创建队列,自动分配内存.
+xQueueCreateStatic() 静态方式创建队列,手动分配内存.
+
+xQueueCreate() 本质是个宏.参数:队列长度,队列项目大小.返回值NULL说明队列创建失败,其他值是队列句柄.
+
+原型宏的参数有三个,前两个一样,第三个是选择功能,因为FreeRTOS基于队列做了别的功能比如信号量.
+
+8.队列写入消息.
+
+xQueueSend(),xQueueSendToBack(),xQueueSendToFront(),xQueueOverWrite()本质都是宏,只是指定了不同的写入位置.
+
+本质都调用了xQuequeGenericSend()这个函数,参数:待写入的队列,待写入的消息,阻塞超时时间,写入的位置.
+返回值:成功,pdTRUE.失败,errQUEUQ_FULL.
+
+覆写方式写入队列,只有在队列的队列长度为1时,才能使用.
+
+9.队列读.
+
+xQueueReceive(),用于从队列中读取消息,并且消息读取成功后,会将消息从队列中移除.
+
+3个参数:
+xQueue,待读取的队列.
+pvBuffer,信息读取缓冲区.
+xTicksToWait,阻塞超时时间.
+
+pdTRUE,读取成功.
+pdFALSE,读取失败.
+
+xQueuePeek(),不会移除已经读取的消息.

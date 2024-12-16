@@ -1,0 +1,225 @@
+1.arm汇编立即数也有限制.
+
+前面必须加#
+
+0x1234不算立即数.
+
+2.STMIA ,I是增加,A是after,在传输之后才来增加这个地址.
+DB,D是减小,B是before之后.
+
+对于STM来说,DB也可写作FD(满减,为了迎合栈操作).
+对于LDM来说,IA也可写作FD(满减的逆向操作,为了迎合栈操作).
+
+后缀有IA,IB,DA,DB四种.
+
+STM,LDM指令中地址和寄存器怎么对应?
+
+低标号对应低的寄存器(r0比r1低).
+
+这些指令用作栈.
+STM是存储的意思,把寄存器值存到内存里,可以用来入栈
+LDM是读取的意思,把内存里的值读到寄存器里,可以用来出栈
+
+2*.栈
+
+栈里
+如果有数据,要保存下一个数据,那么先调整SP 再 存数据.
+如果无数据,要保存下一个数据,那么先存数据 再 调整SP.
+
+再根据栈是往上增长还是往下增长又是两种情况.
+
+两两组合栈的类型就有四种:满增,满减,空增,空减.
+
+最常用的是满减类型,存数据的时候往小减SP,再存.
+(见图8.栈满减示意图.png)
+(见图9.栈满减代码.png,其中的DB,IA可替换为FD)
+
+3.跳转指令介绍.
+
+B(Branch):只跳转,跳转之后啥也不管.
+BL(Branch with Link):跳转前先把返回地址保存到LR寄存器中.
+
+BX和BLX比上述指令多了一个状态转换,
+地址最后一位是0的话,意味着即将执行的指令是ARM32位指令;
+地址最后一位是1的话,意味着即将执行的指令是Thumb16位指令;
+
+给PC直接赋值也可以跳转.
+
+4.相同的汇编指令对于不同指令集(thumb1,thumb2,arm)翻译成的机器码不相同.
+
+5.汇编调用c函数传参规则见图14,示例14*.
+
+6.板子一上电会从0x8000 0000处取得栈指针;
+从0x8000 0004处取得PC值,从而跳转.
+
+7.韦老师讲的串口!!!
+
+如果你用的115200 波特率,1位开始8位数据1位停止,无校验位.那么发送一个字节就需要传10位, 所以一秒传11520个字节.
+
+8.keil 背后也是各种命令,只不过他用这些按钮帮你调用那些命令.
+IDE的背后是命令.
+
+预处理->编译->汇编->连接
+其中,预处理,编译,汇编统称为编译.
+
+gcc -E -o hello.i hello.c 产生预处理文件.
+预处理阶段并不检查语法错误,就宏替换,包含头文件,宏开关编译.
+编译是预处理后的文件变成汇编文件.
+汇编文件变机器码叫汇编.
+用的最多的就是先编译再链接.见图16.
+好处是哪个文件改了编译哪个.
+如果选择 gcc -o hello ,不管改没改都编译,然后连接.
+
+9.make引入规则那一节
+
+命令:gcc -o test a.c b.c 执行后
+
+(上述命令+ ‘-v’后可查看处理过程)
+
+a.c --> xxx.s --> xxx.o 
+b.c --> yyy.s --> yyy.o 最后二者合起来成为test.exe
+
+指令缺点就是:假设上次已经执行一遍了,a没改动,只改动b,a还会再执行‘预处理--> 编译 --> 汇编’三个步骤,浪费时间.
+
+标准步骤?
+gcc -c -o a.o a.c
+gcc -c -o b.o b.c
+gcc -o test a.o b.o
+
+如何判断文件被修改了?
+
+如果a.c的时间比a.o的时间更新的话,说明a.c被修改了.
+如果b.c的时间比b.o的时间更新的话,说明b.c被修改了.
+如果a.o的时间比test.exe的时间新的话,说明test.exe得重新生成了.
+
+如何写最简单的makefile?
+
+makefile最简单的语法是规则.
+
+目标文件:一个或者多个依赖文件.
+'TAB键' + 命令
+当 '依赖' 比 '目标' 新,执行命令.
+
+标准步骤如何改makefile?
+
+test 依赖a.o , b.o ,一旦a.o或者b.c比test新的时候
+执行gcc -o test a.o b.o
+
+当a.c比a.o更加新的时候,
+执行gcc -c -o a.o a.c
+
+当b.c比b.o更加新的时候,
+执行gcc -c -o b.o b.c
+
+所以makefile是:
+test:a.o b.o
+    gcc -o test a.o b.o
+a.o:a.c
+    gcc -c -o a.o a.c
+b.o:b.c
+    gcc -c -o b.o b.c
+
+10.makefile规则.
+
+test:a.o b.o
+	gcc -o test  $^ //这个表示所有的依赖文件
+%.o : %.c  //通配符,替代所有.o .c文件
+	gcc -c -o $@ $<   //$@指的是目标文件,$<指的是第一个依赖文件
+
+clean:
+	rm *.o test //清除所有.o文件 清除test.exe
+
+
+使用make命令,后面可以根目标名,如果没有默认第一个.
+
+make默认执行test,clean不执行.
+make clean才执行clean,test不执行. 
+
+makefile中命令执行的条件是:
+(1).make 后面的文件不存在
+(2).依赖文件比目标文件新
+
+上述make clean命令得以执行的原因是:clean文件不存在.
+如果文件中存在clean文件,make clean命令下的命令将得不到执行.
+因为没有依赖文件,无法判断目标文件与依赖文件的时间顺序默认不执行.
+
+解决办法是加上  .PHONY: clean  //忽视这个文件的影响.
+也叫假想目标.
+
+还有一种叫 即使变量,延时变量 ,export,也称为简单变量.
+A:=xxx //A的值即刻确定
+B=xxx  //B的值使用到时才确定,总会取xxx最新的值
+?= //延时变量,如果该变量在前面已经定义,则忽略此句话.
++= //追加,类似于字符拼接
+@不会显示命令本身
+#注释
+
+make A=12345   会使得"?= xxx"这句话失效  
+
+10.makefile的函数.
+
+A = a b c 
+B = $(foreach f, $(A), $(f).o)  //每个都替换
+C = a b c d/
+D = $(filter %/,$(C))  //通配符找出符合要求的那一个
+E = $(filter-out %/,$(C)) //除去满足通配符的
+files=$(wildcard *.c)   //找到所有满足通配符的
+
+files2=a.c b.c c.c d.c e.c   //可以找到真实存在的文件
+files3=$(wildcard $(files2))
+
+dep_files=$(patsubst %.c,%.d,$(files2))  //文本替换
+
+all:
+	@echo B=$(B)
+	@echo D=$(D)
+	@echo E=$(E)
+	@echo files=$(files)
+	@echo files2=$(files2)
+	@echo files3=$(files3)
+	@echo dep_files=$(dep_files)
+
+11.makefile中考虑头文件的引用
+
+a.o:a.c b.h     //a.c里包含了b.h,b.h改了重新生成a.o
+%.o : %.c  
+	gcc -c -o $@ $<
+
+gcc -M a.c   //这条命令查看文件依赖
+gcc -M -MF a.d a.c  //这条命令把依赖写到一个文件里
+gcc -c -o  a.o a.c -MD -MF c.d  //既会编译,又会生成依赖文件清单
+
+//*********以下是一个完整的makefile************//
+
+objs=a.o b.o   //目标文件
+dep_files:=$(patsubst %, .%.d ,$(objs)) //依赖文件
+dep_files:=$(wildcard $(dep_files))//找到真实存在的
+
+CFLAGS=-Werror -Iinclude //会使得警告也变成错误,指定<>要查找的目录
+
+test:$(objs)
+	gcc -o test $^  //生成目标文件
+
+ifneq ($(dep_files),)  //如果不为空
+include $(dep_files)  //就包含
+endif
+
+%.o : %.c  
+	gcc $(CFLAGS) -c -o $@ $< -MD -MF .$@.d  //编译并且产生包含文件  //警告变错误
+
+clean:
+	rm *.o test 
+
+distclean:
+	rm $(dep_files)
+
+.PHONY: clean
+
+使用""包含头文件是在当前目录下查找,使用<>是在编译器指定的位置查找头文件.
+
+12.
+make -f Makefile.better  //此条命令对于Makefile 是别的名字的文件,可以指定文件名调用
+
+13.以后字节写makefile时候,可以参考makefile实例那一节.
+
+14.代码段,数据段的概念,看图17,
