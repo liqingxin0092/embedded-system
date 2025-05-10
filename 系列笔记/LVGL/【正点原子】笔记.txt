@@ -1,0 +1,301 @@
+一.移植整体流程
+
+1.确定输入输出设备.
+输入:触摸屏,鼠标,键盘以及编码器;
+输出:显示屏.
+
+2.确定所需要的可选功能.
+屏幕数据传输方式:用不用DMA2D
+系统
+SRAM
+内存管理算法
+
+3.准备LVGL库,例程
+准备V8.2版本的LVGL文件,还有支持所需功能的例程源码.
+
+4.添加LVGL库到工程里
+按需裁剪
+修改LVGL库文件
+并添加到MDK工程中.(比较繁琐)
+
+5.配置输入,输出设备
+适配自己的输入和输出设备,添加所需功能.(例如系统)
+
+6.提供心跳,测试
+为LVGL提供时基,写测试代码检测移植是否成功.
+
+7.内存
+
+不同的项目,内存分配比例不同,一般分配给LVGL管理的内存为15~40k字节,分配给控件.
+
+SRAM比较快,SDRAM内存比较大.
+
+lvgl管理的内存(不是图形缓冲区),主要是控件的内存,控件用得多了开内存.
+
+8.文件介绍
+
+显示设备接口文件.
+输入设备接口文件.
+裁剪,配置文件.
+
+9.LVGL采用的是面向对象的编程思想.
+
+当我们用一个父对象来创建一个子对象时,父对象就相当于是这个子对象的容器.
+子对象默认位置是在父对象的左上角.
+
+基础对象(lv_obj)可作为父对象,可以创建其他对象,同时他也可以作为部件使用.
+
+基础对象--->scr_act(活动屏幕),还可以是别的,lv_obj部件--(创建)-->别的控件,开关按键之类的.
+
+子控件的位置是相对于父控件的位置,不一定是屏幕.
+
+如果子类位置超界了,可以拖拽回来,但是不推荐超界.
+
+10.一些API
+    lv_obj_set_size(obj1, 50, 50);//尺寸
+	lv_obj_set_x(obj1,100);
+	lv_obj_set_y(obj1,200);
+    lv_obj_set_pos(obj1, 100, 200);//位置
+
+11.部件对齐.
+就是让控件自动排布.
+
+一些参数:
+LV_ALIGN_OUT_RIGHT_MID //右中
+LV_ALIGN_CENTER        //居中
+...直接跳转定义看别的.
+
+*ALIGH是对齐的意思
+对齐方法:
+
+(1).参照父对象对齐.
+只能选择框框里的参数
+lv_obj_set_align(obj1,LV_ALIGN_CENTER);
+lv_obj_align(obj1,LV_ALIGN_CENTER,50,50);//在选定位置的基础上再偏移.
+(2).参照其他对象对齐.
+lv_obj_align_to(obj2,obj1,LV_ALIGN_OUT_RIGHT_MID,0,0);
+			//需要对齐的对象,基准对象,方法,偏移后再微调.
+
+设置对齐的时候,注意一下父对象的范围.  
+
+12.样式.
+样式用于设置部件的外观,以优化显示界面和实现用户交互.
+
+如何给部件添加样式?
+
+添加普通样式:
+static lv_style_t style;//这个必须是全局变量,静态或者是动态分配的. 
+lv_style_init(&style);//初始化样式.
+lv_style_set_bg_color(&style,lv_color_hex(0xf4b183));//设置背景颜色
+
+普通样式可以共享,本地样式不能.
+
+有哪些样式属性可以设置?
+
+大小,位置,背景,轮廓,边框,阴影,其他.
+
+这些函数,就找到其中一个函数,查找声明,就能看到别的函数.
+
+如何找到哪些函数?
+
+如果用的是普通类型,lv_style_set_bg_color,这个函数放到程序里,然后跳转定义,找到其他同类函数,介绍的话看文档.
+
+如何单独设置部件中某个部分的样式?
+
+一个复杂的部件是由多个部分构成的.
+
+13.滑块控件
+
+lv_obj_set_style_bg_color(slider,lv_color_hex(0x04ff50),LV_STATE_DEFAULT); //填default默认设置到滑块控件的主体.
+
+LV_PART_KNOB滑块的其他部分,跳转这个定义.
+这些部位的宏定义不能或起来,只能函数单独调用.
+
+lv_obj_set_style_bg_color(slider,lv_color_hex(0x04ff50),LV_PART_KNOB);//设置滑块
+
+14.事件
+
+LV_EVENT_CLICKED跳转定义.
+
+lv_obj_add_event_cb(obj,my_event_cb,LV_EVENT_CLICKED,NULL);//添加事件.
+
+不同事件调用一个函数
+static void my_event_cb(lv_event_t *e)
+{
+    lv_event_code_t code=lv_event_get_code(e);
+    if(code ==LV_EVENT_CLICKED)
+    {
+        printf("事件类型:按下后释放\r\n");
+    }
+    else if(code ==LV_EVENT_LONG_PRESSED)
+    {
+        printf("事件类型:长摁\r\n");
+    }
+}
+
+不同对象调用一个函数,注意对象要全局.
+lv_obj_t *obj1;
+lv_obj_t *obj2;
+static void my_event_cb(lv_event_t *e)
+{
+    lv_obj_t *target=lv_event_get_target(e);
+    if(target ==obj1)
+    {
+        printf("obj1\r\n");
+    }
+    else if(target ==obj2)
+    {
+        printf("obj2\r\n");
+    }
+}
+
+15.标签部件.
+
+在LVGL中,标签部件主要用于文本显示,例如标题,提示信息等.
+
+组成部分:
+主体,滚动条,选中的文本.
+
+如何创建标签部件以及设置文本?
+
+lv_obj_t *label=lv_label_create(parent);
+
+设置文本的3种方式.
+lv_label_set_text(label,"hello\r\n");//动态内存分配.
+lv_label_set_text_static(label,"hello\r\n");//静态内存分配.慎用,可能出问题.
+lv_label_set_text_fmt(label,"value:%d",50);//类似printf.//常用
+
+设置字体大小:
+lv_obj_set_style_text_font(label,&lv_font_montserrat_30,LV_STATE_DEFAULT);
+
+设置个别字体颜色.
+lv_label_set_recolor(label,true);
+lv_label_set_text(label,"hello #ff0000 lvgl#");
+
+当文本长度超过部件大小的时候怎么显示?
+知识点1:
+默认情况下,如果没有限定标签部件大小,那他的大小自动扩展为文本大小.
+
+lv_obj_t *label = lv_label_create(lv_scr_act());//创建对象
+lv_obj_set_size(label, 100, 100);  //尺寸
+lv_label_set_long_mode(label,LV_LABEL_LONG_DOT);//设置长文本模式.
+lv_label_set_text(label,"hello lvgl,hello lvgl,hello lvgl,hello lvgl,hello lvgl,hello lvgl");//设置文本.
+
+注意:静态设置标签文本,会和长文本模式里的LV_LABEL_LONG_DOT冲突.
+
+自己做一些效果.
+文本带阴影效果 = 再复制一个文本 + left top 对齐 + 黑色字体 + 30%透明度. 
+
+16.按钮控件.(lv_btn)
+
+/*创建按钮部件*/
+lv_obj_t *btn = lv_btn_create(lv_scr_act());
+
+/*设置样式*/
+lv_obj_set_size(btn,100,50); //大小
+lv_obj_set_align(btn,LV_ALIGN_CENTER);//对齐
+lv_obj_set_style_bg_color(btn,lv_color_hex(0xffe1d4),LV_STATE_PRESSED);//背景颜色
+
+lv_obj_add_flag(btn,LV_OBJ_FLAG_CHECKABLE);//按键状态切换
+lv_obj_add_event_cb(btn,event_cb,LV_EVENT_VALUE_CHANGED,NULL);//添加事件
+
+17.开关部件
+
+设置样式的时候要考虑他的触发状态.
+LV_STATE_DISABLED这个会使得状态不可修改.
+
+18.复选框部件.
+复选框部件常用于选择某个内容的开启和关闭,可以理解为自带标签的开关.
+
+19.进度条部件(lv_bar)
+用于显示当前任务的完成进度.
+
+设置尺寸的时候,如果宽度大于高度,进度条就是横向的.
+如果宽度小于高度,进度条就是纵向的.
+
+20.加载器部件.
+
+加载器部件常用于提示当前任务正在加载.
+
+21.lv_led 
+
+LDE部件常用于指示控制对象的状态.
+他构成本分就是个主体. LV_PART_MAIN.
+
+22.注意每个对象其实都能点,不只有复选框,开关能点击.
+
+23.列表部件.
+
+列表部件常用于多选一的场景,默认会展现多个选项.
+
+24.lv_obj_update(obj)//手动更新物体参数.
+
+25.下拉列表部件.
+
+下拉列表常用于多选一的场景,点击后可展现多个选项.
+
+26.滚轮部件.
+
+滚轮部件常用于多选一的场景,他以滚轮的形式来展现多个选项.
+滚轮中的无限循环模式LV_ROLLER_MODE_INFINITE,对内存的占用较大.
+
+也可使用add_state 那个函数.使得不可滑动.
+
+27.滑块部件(lv_slider)
+
+滑块部件常用于调节某个参数的值,它以直线形式来修改数值.
+
+28.圆弧部件(lv_arc).
+
+圆弧部件以弧形滑动的形式来调节显示某个参数的值.
+
+顺时针方向旋转
+
+29.线条部件.
+
+线条部件,能够在一组坐标点之间依次绘制直线.
+就是给点连线.
+默认方向是:
+     x------------------->
+  y
+  |
+  |
+  |
+  |
+  V 
+
+30.图片部件.
+
+用于图片显示,功能界面优化,背景优化等.
+
+31.色环部件
+作为颜色选择器
+
+32.按钮矩阵部件
+
+可以在不同的行和列显示多个轻量级按钮.
+
+详细用法见正点原子例程.
+
+33.文本区域部件(lv_textarea)
+
+文本区域部件即文本输入框,用户可以在其中国输入文本内容.
+具体见正点原子源码.
+
+34.键盘部件,具体见手册.
+lv_keyboard
+
+35.图片按钮部件
+
+注意设置大小
+lv_obj_set_size(win,64,64);
+图片重新着色
+
+36.选项卡部件
+获取到他的按钮单独改样式
+获取到主体部分单独修改样式
+详细见正点代码
+
+37.平铺视图部件(tileview)
+注意使用
+lv_obj_update_layout();//更新参数

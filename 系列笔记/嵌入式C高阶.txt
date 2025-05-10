@@ -1,0 +1,9 @@
+1.一个宝贵的调试宏.
+#define LOG_INFO(x,...) printf("%s:%s:%d:"x"\r\n",__FILE__,\
+           										__FUNCTION__,\
+           										__LINE__,\
+           										##__VA_ARGS__\
+           					  )
+
+
+

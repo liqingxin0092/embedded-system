@@ -1,0 +1,168 @@
+1.m7内核寄存器
+	r0~r13,lr,pc
+	APSR,EPSR,IPSR
+	PRIMASK, FAULTMASK,BASEPRI
+	CONTROL
+
+2.device 和 strongly-order的内存区别:
+	The different ordering requirements for Device and Strongly-ordered memory mean that the 
+memory system can buffer a write to Device memory, but must not buffer a write to Strongly-ordered memory.
+
+3.The MPU can override the default memory access behavior described in this section.
+
+4.On system reset, the vector table is at address 0x00000000. Privileged software can write to 
+the VTOR to relocate the vector table start address to a different memory location,
+
+5. If an exception occurs with the same priority as the 
+exception being handled, the handler is not preempted, irrespective of the exception 
+number.  However, the status of the new interrupt changes to pending.
+
+6.优先级分组的官方解释:
+
+This divides each interrupt priority register entry into two fields:
+• An upper field that defines the group priority.
+• A lower field that defines a subpriority within the group.
+
+Only the group priority determines preemption of interrupt exceptions.
+If multiple pending interrupts have the same group priority, the subpriority field determines 
+the order in which they are processed.
+If multiple pending interrupts have the same group priority, the subpriority field determines 
+the order in which they are processed.
+
+7.同步原语.
+
+8.中断机制
+
+Tail-chaining.
+This mechanism speeds up exception servicing. On completion of an 
+exception handler, if there is a pending exception that meets the 
+requirements for exception entry, the stack pop is skipped and control 
+transfers to the new exception handler.
+两个中断挨一块执行,上一次中断不出栈,加快中断处理.
+共享出栈.
+
+Late-arriving.
+ If a higher priority exception 
+occurs during state saving for a previous exception, the processor 
+switches to handle the higher priority exception and initiates the vector 
+fetch for that exception. State saving is not affected by late arrival 
+because the state saved is the same for both exceptions. Therefore the 
+state saving continues uninterrupted.
+共享一次入栈.
+
+9.中断进入过程
+
+In parallel to the stacking operation, the processor performs a vector fetch that reads the 
+exception handler start address from the vector table.
+
+When stacking is complete, the processor starts executing the exception handler. At the same time, the processor writes an EXC_RETURN value to the LR. 
+ 
+This indicates which stack pointer corresponds to the stack 
+frame and what operation mode the processor was in before the entry occurred.
+
+If no higher priority exception occurs during exception entry, the processor starts executing 
+the exception handler and automatically changes the status of the corresponding pending 
+interrupt to active. 
+
+If another higher priority exception occurs during exception entry, the processor starts 
+executing the exception handler for this exception and does not change the pending status 
+of the earlier exception. This is the late arrival case.
+
+中断的抢占规则:
+If multiple pending exceptions have the same priority, the pending exception with the lowest 
+exception number takes precedence.
+如果多个待处理异常具有相同的优先级，则具有最小异常编号的待处理异常优先.
+
+When the processor is executing an exception handler, the exception handler is preempted 
+if a higher priority exception occurs
+当处理器执行异常处理程序时，如果发生优先级更高的异常，则会抢占异常处理程序.
+
+中断的处理逻辑:
+When the processor enters the ISR, it automatically removes the pending state from the 
+interrupt, see Hardware and software control of interrupts on page 190. For a level-sensitive 
+interrupt, if the signal is not deasserted before the processor returns from the ISR, the 
+interrupt becomes pending again, and the processor must execute its ISR again. This 
+means that the peripheral can hold the interrupt signal asserted until it no longer requires 
+servicing.
+
+If an exception occurs with the same priority as the 
+exception being handled, the handler is not preempted, irrespective of the exception 
+number. However, the status of the new interrupt changes to pending.
+如果发生异常的优先级与正在处理的异常相同，则无论异常编号如何，都不会抢占处理程序。
+但是，新中断的状态将更改为 pending
+
+10.h7内核手册指示了一些内核中断的发生存在寄存器标志位.
+Table 21 shows the types of fault, the handler used for the fault, the corresponding fault 
+status register, and the register bit that indicates that the fault has occurred.
+
+11.此处描述了栈损坏时的情形
+If a BusFault occurs during a stack push when entering a BusFault handler, the BusFault 
+does not escalate to a HardFault. This means that if a corrupted stack causes a fault, the 
+fault handler executes even though the stack push for the handler failed. The fault handler 
+operates but the stack contents are corrupted.
+
+12.用于回溯找问题
+The fault status registers indicate the cause of a fault. For synchronous BusFaults and 
+MemManage faults, the fault address register indicates the address accessed by the 
+operation that caused the fault, as shown in Table 22.
+
+13.指示M7不包含位带操作.
+The code designed for other Cortex®-M processors is compatible with Cortex®-M7 as long 
+as it does not rely on bit-banding.
+
+14.指示系统控制寄存器(SCB)的默认设置
+/*SCB*/
+By default this register is set to provide optimum performance from the Cortex®-M7 
+processor, and does not normally require modification.
+
+Auxiliary control register(ACTLR):
+可以设置禁用一些操作,但默认是全打开的,为了provide optimum performance.
+这些操作包括: (1)ITM and DWT ATB flush,(2)dynamic read allocate mode for Write-Back Write-Allocate 
+memory regions(回写-写分配,cache策略),(3)浮点异常输出,(4)Dual-issue functionality is disabled.
+
+CPUID base register:
+记录了发行商(arm),版本,处理器(Cortex m7)等信息.
+
+关于异常信息详细见组件fault_handle
+
+Vector table offset register:
+设置向量表 偏移.
+The VTOR indicates the offset of the vector table base address from memory address 0x00000000
+
+15.位域操作的本质也是读改写.
+
+16.SCB_CFSR这个寄存器的一些位会隐式地定位出错地址,即PC位置处的栈,见内核207页.
+
+17.程序的优化会规避一些fault,比如div 0,未对齐访问.
+
+18.此处描述了立即数的定义
+Constant
+Specify an Operand2 constant in the form:
+#constant
+where constant can be:
+• Any constant that can be produced by shifting an 8-bit value left by any number of bits 
+within a 32-bit word.
+• Any constant of the form 0x00XY00XY.
+• Any constant of the form 0xXY00XY00.
+• Any constant of the form 0xXYXYXYXY.
+Note: In these constants, X and Y are hexadecimal digits.
+
+19.浮点异常处理是通过轮询FPSCR寄存器来实现的,检测到标志位,然后通过NVIC_STIR寄存器跳转到中断处理程序,而且处理程序根据FPCCR的LSPEN和ASPEN的设置而不同.
+
+20.有时候寄存器复位值和实际的不一样.
+比如这个寄存器, AHBPCR .处理器自动帮我打开了AHBP en位.还有只读信息显示.
+ITCMR和DTCMR也会自动设置.
+
+21.注意MPU控制那里,HFNMIENA和ENABLE要一块配置(挨着就行),不一定并行配置.
+
+如果启用背景区,背景区域的行为就像它是区域编号-1一样。定义和启用的任何区域都优先于此默认映射.文章中特指特权级软件.
+
+The ADDR field is bits[31:N] of the MPU_RBAR. The region size, as specified by the SIZE field in the MPU_RASR, defines the value of N: N = Log2(Region size in bytes).
+
+这是一种硬件自动对齐机制.
+
+22.从单片机硬件寄存器里读取有关单片机的信息可能不准确.
+
+23.参考手册给出了,不同区域SRAM的参考用途.
+
+24.freertos的事件组逻辑使用定时器队列.

@@ -1,0 +1,4 @@
+摄像头协议
+
+1.SCCB(serial Camera Control Bus),串行摄像头控制总线,由两根线组成,SIO_C和SIO_D.
+

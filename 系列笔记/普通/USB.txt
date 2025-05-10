@@ -1,0 +1,2 @@
+1.USB,全称:Universal Serial Bus,即通用串行总线.
+USB提供适合各种应用的传输协议,而且协议标准向下兼容.
